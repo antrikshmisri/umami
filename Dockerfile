@@ -33,10 +33,7 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_OPTIONS=$NODE_OPTIONS
 
-# The following lines for adding a custom user are removed as they conflict with OpenShift
-# RUN addgroup --system --gid 1001 nodejs
-# RUN adduser --system --uid 1001 nextjs
-
+# Removed user creation (addgroup, adduser)
 RUN npm install -g pnpm
 
 RUN set -x \
@@ -45,15 +42,9 @@ RUN set -x \
 # Script dependencies
 RUN pnpm add npm-run-all dotenv prisma@6.7.0
 
-# This chown is removed as the 'nextjs' user is no longer created
-# # Permissions for prisma
-# RUN chown -R nextjs:nodejs node_modules/.pnpm/
+# Removed chown for 'nextjs' user
 
-# This command sets the correct group permissions for the OpenShift environment
-RUN chgrp -R 0 /app && \
-    chmod -R g+rwX /app
-
-# The '--chown' flag is removed from all COPY commands
+# Removed '--chown' from all COPY commands
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/scripts ./scripts
@@ -66,8 +57,12 @@ COPY --from=builder /app/.next/static ./.next/static
 # Custom routes
 RUN mv ./.next/routes-manifest.json ./.next/routes-manifest-orig.json
 
-# The USER directive is removed to let OpenShift manage the user
-# USER nextjs
+# ** THE CORRECTED PERMISSION FIX, IN THE CORRECT LOCATION **
+# This runs *after* all files are copied to ensure they all get the right permissions.
+RUN chgrp -R 0 /app && \
+    chmod -R g+rwX /app
+
+# Removed USER nextjs directive
 
 EXPOSE 3000
 
